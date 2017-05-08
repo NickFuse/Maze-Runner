@@ -23,6 +23,7 @@ volatile long qtiTime;
 volatile int rightDistance;
 volatile int shimmey = 0;
 volatile int stop = 0;
+volatile int turnDecider = 100;
 volatile int turret = 1;
 volatile int X;
 volatile int Y;
@@ -87,6 +88,7 @@ void Mapper()
     print("Left = %d %c\n", leftDistance, CLREOL);
     print("Right = %d %c\n", rightDistance, CLREOL);
     print("Forward = %d %c\n\n", forwardDistance, CLREOL);
+    print("TURN? = %d %c\n\n", turnDecider, CLREOL);
     rightAvg = rightAvg*.8+rightDistance*0.2;
     leftAvg = leftAvg*.8+leftDistance*0.2;
     if(leftDistance==0||rightDistance==0)
@@ -114,7 +116,7 @@ void Mapper()
         if(leftAvg>15&&rightAvg>15)
         {
            print("Default Turn",CLREOL);
-          turn(1); 
+          turn(-1); 
          
         }        
         else
@@ -138,23 +140,47 @@ void Mapper()
       if(leftDistance<20)
       {
         if(leftDistance>9)
-        drive_speed(20,13+leftDistance);
+        drive_speed(20,12+leftDistance);
         else
         if(leftDistance<8)
-        drive_speed(30-leftDistance,20);       
+        drive_speed(29-leftDistance,20);       
       }
       else
       if(rightDistance<20)
       {
         if(rightDistance>9)
-        drive_speed(13+rightDistance,20);
+        drive_speed(12+rightDistance,20);
         else
         if(rightDistance<8)
-        drive_speed(20,30-rightDistance);       
+        drive_speed(20,29-rightDistance);       
       } 
       else
       drive_speed(20,20);
       
+      if(forwardDistance>30 && turnDecider > 80 && (leftDistance >30 || rightDistance>30))
+      {
+        turnDecider =0;
+        high(LED0);
+        high(LED1);
+        pause(100);
+        low(LED0);
+        low(LED1);
+        
+        if(input(14))
+        {
+          pause(2000);
+          drive_ramp(0,0);
+   
+          if(leftDistance>20)
+            turn(1);
+          else
+            turn(-1);
+
+          drive_speed(20,20);    
+        }        
+          
+      }    
+        
 
     pause(200); 
   }   
@@ -162,9 +188,14 @@ void Mapper()
 
 void turn(int d)
 {
+   turnDecider = 0;
    drive_ramp(-10*d,10*d);
    pause(turnConstant/4);
    drive_ramp(0,0);
+   while(turnDecider<50)
+   {
+   }  
+   drive_speed(20,20);  
 }  
 void QTI()
 {
@@ -264,6 +295,7 @@ void Encoder()
     		if(leftEncoder != prevLeftState)
     		{
     		   distanceIterationsL+=1;
+          turnDecider+=1;
     		} 
     		if(rightEncoder != prevRightState)
     		{
