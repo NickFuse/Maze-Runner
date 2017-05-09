@@ -15,11 +15,13 @@ volatile float angle;
 volatile int currentBearing;
 volatile int distanceIterationsL = 0;
 volatile int distanceIterationsR = 0;
+volatile int drive = 1;
 volatile int encode = 1;
 volatile int foodCount = 0;
 volatile int forwardDistance = 1;
 volatile int leftDistance;
 volatile long qtiTime;
+volatile int qtiAvg = 1000;
 volatile int rightDistance;
 volatile int shimmey = 0;
 volatile int stop = 0;
@@ -81,6 +83,8 @@ int main()
 void Mapper()
 {
   drive_ramp(20,20);
+  int k = 1;
+  int exp = 1;
   int leftAvg = leftDistance;
   int rightAvg = rightDistance;
   while(1)
@@ -89,13 +93,25 @@ void Mapper()
     print("Right = %d %c\n", rightDistance, CLREOL);
     print("Forward = %d %c\n\n", forwardDistance, CLREOL);
     print("TURN? = %d %c\n\n", turnDecider, CLREOL);
+    print("QTI = %d %c\n\n", qtiAvg, CLREOL);
     rightAvg = rightAvg*.8+rightDistance*0.2;
     leftAvg = leftAvg*.8+leftDistance*0.2;
-    if(leftDistance==0||rightDistance==0)
+    if(leftDistance==0||rightDistance==0||qtiAvg>2000||!drive)
     {
       drive_ramp(0,0);
     }    
     else  
+    if(forwardDistance<4)
+    {
+      encode = 0;
+      drive_ramp(0,0);
+      while(forwardDistance<10)
+      {
+        drive_speed(-20,-20);
+      }      
+      drive_ramp(0,0);
+      encode = 1;
+    }    
       if(forwardDistance<10)
       {  
         pause(400);
@@ -137,27 +153,33 @@ void Mapper()
         drive_ramp(20,20);  
       }    
     else  
-      if(leftDistance<20)
+    if(rightDistance<20)
       {
-        if(leftDistance>9)
-        drive_speed(20,12+leftDistance);
-        else
-        if(leftDistance<8)
-        drive_speed(29-leftDistance,20);       
-      }
-      else
-      if(rightDistance<20)
-      {
+        int rightPow = (int)(k*pow(rightDistance,exp));
         if(rightDistance>9)
-        drive_speed(12+rightDistance,20);
+        drive_speed(12+rightPow,20);
         else
         if(rightDistance<8)
-        drive_speed(20,29-rightDistance);       
+        drive_speed(20,29-rightPow);       
       } 
+      else
+      if(leftDistance<20)
+      {
+        
+        int leftPow = (int)(k*pow(leftDistance,exp));
+        if(leftDistance>9)
+        drive_speed(20,12+leftPow);
+        else
+        if(leftDistance<8)
+        drive_speed(29-leftPow,20);       
+
+        
+      }
+
       else
       drive_speed(20,20);
       
-      if(forwardDistance>30 && turnDecider > 80 && (leftDistance >30 || rightDistance>30))
+      if(forwardDistance>30 && turnDecider > 85 && (leftAvg >30 || rightAvg>30))
       {
         turnDecider =0;
         high(LED0);
@@ -168,21 +190,24 @@ void Mapper()
         
         if(input(14))
         {
-          pause(2000);
+          pause(300);
           drive_ramp(0,0);
    
-          if(leftDistance>20)
+          if(leftAvg>20)
             turn(1);
           else
             turn(-1);
 
           drive_speed(20,20);    
+           while(turnDecider<100)
+           {
+           }       
         }        
           
       }    
         
 
-    pause(200); 
+    pause(100); 
   }   
 }
 
@@ -192,23 +217,24 @@ void turn(int d)
    drive_ramp(-10*d,10*d);
    pause(turnConstant/4);
    drive_ramp(0,0);
-   while(turnDecider<50)
-   {
-   }  
-   drive_speed(20,20);  
+   drive_speed(20,20); 
+    
 }  
 void QTI()
 {
 	int colorChange = 1;
+  
 	while(1)
 	{
 		high(QTIPin);
 		pause(5);
    low(QTIPin);
    qtiTime = rc_time(QTIPin,0);
-   
+   qtiAvg = qtiAvg*0.9+qtiTime*0.1;
 		low(QTIPin);
-		if(qtiTime>blackThreshhold&&colorChange)
+    if(qtiAvg>2700)
+      drive = 0;
+		/*if(qtiTime>blackThreshhold&&colorChange)
 		{
 			stop = 1;
 			colorChange = 0;
@@ -225,7 +251,7 @@ void QTI()
 		{
 			colorChange = 1;
 			low(LED1);
-		}
+		}*/
    pause(100);
 	}
 }
