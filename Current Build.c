@@ -21,7 +21,8 @@ volatile int foodCount = 0;
 volatile int forwardDistance = 1;
 volatile int leftDistance;
 volatile long qtiTime;
-volatile int qtiAvg = 1000;
+volatile int qtiAvg = 4000;
+volatile int qtiAvgAvg = 4000;
 volatile int rightDistance;
 volatile int shimmey = 0;
 volatile int stop = 0;
@@ -93,10 +94,35 @@ void Mapper()
     print("Right = %d %c\n", rightDistance, CLREOL);
     print("Forward = %d %c\n\n", forwardDistance, CLREOL);
     print("TURN? = %d %c\n\n", turnDecider, CLREOL);
-    print("QTI = %d %c\n\n", qtiAvg, CLREOL);
+    print("QTIavg = %d %c\n\n", qtiAvg, CLREOL);
+    print("QTIavg2 = %d %c\n\n", qtiAvgAvg, CLREOL);
+    print("QTItime = %d %c\n\n", qtiTime, CLREOL);
     rightAvg = rightAvg*.8+rightDistance*0.2;
     leftAvg = leftAvg*.8+leftDistance*0.2;
-    if(leftDistance==0||rightDistance==0||qtiAvg>2000||!drive)
+    if(qtiAvg>12000)
+    {
+      turn(-1);
+      turn(-1);
+      turn(-1);
+      turn(-1);
+    } 
+    else
+    if(qtiAvg>7000)
+    {
+      drive_ramp(0,0);
+      drive_speed(-10,-10);
+      high(LED0);
+      high(LED1);
+      pause(3000);
+      drive_ramp(0,0);
+      
+      turn(-1);
+      turn(-1);
+      low(LED0);
+      low(LED1);
+    }     
+    else 
+    if(leftDistance==0||rightDistance==0)
     {
       drive_ramp(0,0);
     }    
@@ -190,7 +216,7 @@ void Mapper()
         
         if(input(14))
         {
-          pause(300);
+          pause(700);
           drive_ramp(0,0);
    
           if(leftAvg>20)
@@ -230,29 +256,10 @@ void QTI()
 		pause(5);
    low(QTIPin);
    qtiTime = rc_time(QTIPin,0);
-   qtiAvg = qtiAvg*0.9+qtiTime*0.1;
-		low(QTIPin);
-    if(qtiAvg>2700)
-      drive = 0;
-		/*if(qtiTime>blackThreshhold&&colorChange)
-		{
-			stop = 1;
-			colorChange = 0;
-		}
-		else
-		if(qtiTime>greyThreshhold&&colorChange)
-		{
-			foodCount+=1;
-			colorChange = 0;
-			high(LED1);
-		}
-	
-		if(qtiTime<greyThreshhold)
-		{
-			colorChange = 1;
-			low(LED1);
-		}*/
-   pause(100);
+   qtiAvg = qtiAvg*0.95+qtiTime*0.05;
+   qtiAvgAvg = qtiAvgAvg*0.8+qtiAvg*0.2;
+		low(QTIPin);   
+   pause(30);
 	}
 }
 
